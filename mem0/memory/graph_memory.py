@@ -56,12 +56,12 @@ class MemoryGraph:
                 pass
 
         self.llm_provider = "openai_structured"
-        if self.config.llm.provider:
-            self.llm_provider = self.config.llm.provider
-        if self.config.graph_store.llm:
+        if self.config.graph_store.llm and self.config.graph_store.llm.config:
             self.llm_provider = self.config.graph_store.llm.provider
-
-        self.llm = LlmFactory.create(self.llm_provider, self.config.llm.config)
+            self.llm = LlmFactory.create(self.llm_provider, self.config.graph_store.llm.config)
+        elif self.config.llm.provider:
+            self.llm_provider = self.config.llm.provider
+            self.llm = LlmFactory.create(self.llm_provider, self.config.llm.config)
         self.user_id = None
         self.threshold = 0.7
 

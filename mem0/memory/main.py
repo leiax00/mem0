@@ -1384,18 +1384,15 @@ class AsyncMemory(MemoryBase):
             "mem0.get_all", self, {"limit": limit, "keys": keys, "encoded_ids": encoded_ids, "sync_type": "async"}
         )
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_memories = executor.submit(self._get_all_from_vector_store, effective_filters, limit)
-            future_graph_entities = (
-                executor.submit(self.graph.get_all, effective_filters, limit) if self.enable_graph else None
-            )
+        graph_task=None
+        vector_store_task = asyncio.create_task(self._get_all_from_vector_store(effective_filters, limit))
+        if self.enable_graph:
+            graph_task = asyncio.create_task(asyncio.to_thread(self.graph.get_all, effective_filters, limit))
+        tasks = [vector_store_task, graph_task] if self.enable_graph else [vector_store_task]
+        result = await asyncio.gather(*tasks)
 
-            concurrent.futures.wait(
-                [future_memories, future_graph_entities] if future_graph_entities else [future_memories]
-            )
-
-            all_memories_result = future_memories.result()
-            graph_entities_result = future_graph_entities.result() if future_graph_entities else None
+        all_memories_result = result[0]
+        graph_entities_result = result[1] if self.enable_graph else None
 
         if self.enable_graph:
             return {"results": all_memories_result, "relations": graph_entities_result}
