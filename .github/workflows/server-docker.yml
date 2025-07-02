@@ -1,0 +1,85 @@
+name: Build Multi-Arch Docker Image
+
+on:
+  workflow_dispatch:    # 手动触发
+    inputs:
+      platforms:        # 可选：手动触发时覆盖架构
+        description: 'Comma-separated platforms (e.g. "linux/amd64,linux/arm64")'
+        required: false
+        default: 'linux/amd64,linux/arm64'
+  push:
+    tags: [ "v*.*.*" ]  # 推送标签时自动触发
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name }}
+  DEFAULT_PLATFORMS: "linux/amd64,linux/arm64"  # 默认架构
+
+jobs:
+  get-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-tag.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest semantic version tag
+        id: get-tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0 --match "v*.*.*" 2>/dev/null || echo "v0.1.0")
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+          echo "Using version: ${TAG#v}"
+
+  build-push-multiarch:
+    needs: get-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      # 动态获取架构：手动触发参数 > 默认值
+      TARGET_PLATFORMS: ${{ github.event.inputs.platforms || env.DEFAULT_PLATFORMS }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: ${{ env.TARGET_PLATFORMS }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push multi-arch image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: dev.Dockerfile
+          platforms: ${{ env.TARGET_PLATFORMS }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.repository_url }}
+            org.opencontainers.image.version=${{ needs.get-version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Show build result
+        run: |
+          echo "Successfully built for platforms: ${{ env.TARGET_PLATFORMS }}"
+          echo "Image URL: ghcr.io/${{ env.IMAGE_NAME }}:${{ needs.get-version.outputs.version }}"
