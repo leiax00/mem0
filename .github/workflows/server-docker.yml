@@ -1,14 +1,14 @@
-name: Build Multi-Arch Docker Image
+name: 构建server镜像
 
 on:
-  workflow_dispatch:    # 手动触发
+  workflow_dispatch:
     inputs:
-      platforms:        # 可选：手动触发时覆盖架构
-        description: 'Comma-separated platforms (e.g. "linux/amd64,linux/arm64")'
+      platforms:
+        description: 'Target platforms (e.g. "linux/amd64,linux/arm64")'
         required: false
         default: 'linux/amd64,linux/arm64'
   push:
-    tags: [ "v*.*.*" ]  # 推送标签时自动触发
+    tags: [ "v*.*.*" ]
 
 env:
   REGISTRY: ghcr.io
@@ -26,7 +26,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get latest semantic version tag
+      - name: Get latest tag version
         id: get-tag
         run: |
           TAG=$(git describe --tags --abbrev=0 --match "v*.*.*" 2>/dev/null || echo "v0.1.0")
@@ -40,13 +40,20 @@ jobs:
       contents: read
       packages: write
 
-    env:
-      # 动态获取架构：手动触发参数 > 默认值
-      TARGET_PLATFORMS: ${{ github.event.inputs.platforms || env.DEFAULT_PLATFORMS }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set target platforms
+        id: set-platforms
+        run: |
+          # 使用输入参数或回退到环境变量中的默认值
+          if [ -n "${{ github.event.inputs.platforms }}" ]; then
+            echo "PLATFORMS=${{ github.event.inputs.platforms }}" >> $GITHUB_ENV
+          else
+            echo "PLATFORMS=$DEFAULT_PLATFORMS" >> $GITHUB_ENV
+          fi
+          echo "Using platforms: $PLATFORMS"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -63,7 +70,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push multi-arch image
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: ./server
@@ -76,8 +83,6 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.repository_url }}
             org.opencontainers.image.version=${{ needs.get-version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Show build result
         run: |
