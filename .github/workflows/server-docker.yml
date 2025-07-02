@@ -74,7 +74,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./server
-          file: dev.Dockerfile
+          file: ./server/dev.Dockerfile
           platforms: ${{ env.TARGET_PLATFORMS }}
           push: true
           tags: |
