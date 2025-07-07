@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+import time
 import uuid
 import warnings
 from copy import deepcopy
@@ -336,7 +337,7 @@ class Memory(MemoryBase):
             response = remove_code_blocks(response)
             new_retrieved_facts = json.loads(response)["facts"]
         except Exception as e:
-            logging.error(f"Error in new_retrieved_facts: {e}")
+            logging.error(f"Error in new_retrieved_facts: {e}, response: {response}")
             new_retrieved_facts = []
         
         if not new_retrieved_facts:
@@ -1135,7 +1136,7 @@ class AsyncMemory(MemoryBase):
 
                 msg_content = message_dict["content"]
                 msg_embeddings = await asyncio.to_thread(self.embedding_model.embed, msg_content, "add")
-                mem_id = await self._create_memory(msg_content, msg_embeddings, per_msg_meta)
+                mem_id = await self._create_memory(msg_content, {msg_content: msg_embeddings}, per_msg_meta)
 
                 returned_memories.append(
                     {
@@ -1528,10 +1529,13 @@ class AsyncMemory(MemoryBase):
             return {"results": original_memories}
 
     async def _search_vector_store(self, query, filters, limit, threshold: Optional[float] = None):
+        start = time.perf_counter()
         embeddings = await asyncio.to_thread(self.embedding_model.embed, query, "search")
+        embeddings_end = time.perf_counter()
         memories = await asyncio.to_thread(
             self.vector_store.search, query=query, vectors=embeddings, limit=limit, filters=filters
         )
+        logging.debug(f"Search vector store, embeddings cost: {(embeddings_end - start) * 1000:.3f} ms, memory cost: {(time.perf_counter() - embeddings_end) * 1000:.3f} ms")
 
         promoted_payload_keys = [
             "user_id",
