@@ -138,6 +138,8 @@ class SearchRequest(BaseModel):
     user_id: Optional[str] = None
     run_id: Optional[str] = None
     agent_id: Optional[str] = None
+    limit: Optional[int] = None
+    threshold: Optional[float] = None
     filters: Optional[Dict[str, Any]] = None
 
 
@@ -306,4 +308,4 @@ app.include_router(v2_router, prefix="/v2")
 if __name__ == '__main__':
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8004)

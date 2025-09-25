@@ -28,7 +28,7 @@ vector_store:
 #    provider: openai
 #    config:
 #      openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-#      api_key: sk-d6fe04d87ad14b20b4955da27944aaff
+#      api_key: sk-d6fe04d87ad14c20b4955da27944aaff
 #      model: qwen2.5-72b-instruct
 #      temperature: 0.1
 
@@ -43,10 +43,10 @@ llm:
   provider: openai
   config:
 #    openai_base_url: https://api.siliconflow.cn/v1
-#    api_key: sk-nucpbxyydswpwjsgkclqsdtejqtbhhkrxiqayvfiizfjuhyo
+#    api_key: sk-nucpbxyydswpwjsgkclqsdtejatbhhkrxiqayvfiizfjuhyo
 #    model: Qwen/Qwen2.5-7B-Instruct
     openai_base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    api_key: sk-d6fe04d87ad14b20b4955da27944aaff
+    api_key: sk-7350457c960d42b1a837fd079d9422d8
     model: qwen2.5-72b-instruct
     temperature: 0.1
 #    max_tokens: 2000
@@ -60,7 +60,7 @@ embedder:
   config:
     # ollama_base_url: http://192.168.10.4:11434
     openai_base_url: https://api.siliconflow.cn/v1
-    api_key: sk-nucpbxyydswpwjsgkclqsdtejqtbhhkrxiqayvfiizfjuhyo
+    api_key: sk-nucpbxyydswpwjsgkclqsdtejatbhhkrxiqayvfiizfjuhyo
     model: BAAI/bge-m3
     # model: mxbai-embed-large:335m
 
